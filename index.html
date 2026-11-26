@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Merry Christmas</title>
+<style>
+:root{--bg:#04060d;color-scheme:dark}
+html,body{margin:0;height:100%;background:var(--bg);overflow:hidden}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#start{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  background:transparent;border:0;margin:0;padding:0 24px;color:#f3e9cf;font:600 17px/1.4 ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  text-align:center;cursor:pointer;z-index:5;-webkit-tap-highlight-color:transparent;text-shadow:0 0 12px rgba(255,211,107,.5)}
+#start small{font-weight:400;font-size:13px;opacity:.7}
+#start .tap{animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:.45}50%{opacity:1}}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:4;background:repeating-linear-gradient(to bottom,rgba(0,0,0,0) 0,rgba(0,0,0,0) 2px,rgba(0,0,0,.14) 3px);}
+#mute{position:fixed;right:12px;bottom:12px;z-index:6;display:none;width:38px;height:38px;border-radius:50%;border:1px solid rgba(255,255,255,.25);
+  background:rgba(0,0,0,.35);color:#fff;font-size:17px;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c" role="img" aria-label="Pohon Natal pixel berputar dengan ucapan Merry Christmas dari Doni Erwanto"></canvas>
+<audio id="bgm" src="lagu.mp3" loop preload="auto"></audio>
+<button id="start" type="button"><span>A Christmas surprise for you 🎄</span><span class="tap">tap the screen to open</span><small id="snd">🔊 turn on your sound</small></button>
+<button id="mute" type="button" aria-label="Suara">🔊</button>
+<script>
+(function(){
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TAU=Math.PI*2;
+function mb(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const rnd=mb(7),pick=a=>a[(rnd()*a.length)|0];
+const clamp=x=>Math.max(0,Math.min(1,x)),ease=x=>x*x*(3-2*x);
+const BALLS=['#b8433f','#b8433f','#b8433f','#d6a84a','#d6a84a','#d98a3d','#4f7fb0','#4f7fb0','#c97a9a','#e8dcc0','#4f9a72'];
+const GR=['#16352a','#21503a','#2f6b45','#478a52','#6aa562'];
+const CREAM='#e8dcc0';
+const LIGHTS=['#e8dcc0','#d6a84a','#6f9fc0','#c4605a','#7fb98a','#e8dcc0'];
+// jadwal animasi (detik, dihitung sejak layar diketuk)
+const T={g0:.8,g1:6.5,gar:6.5,orn:8.2,star:10.4,gift:11.4,text:14.2};
+const P=[];
+const R=u=>0.07+0.92*Math.pow(1-u,0.95),Y0=u=>-0.82+u*1.72;
+function add(o){if(o.k===undefined)o.k=(rnd()*4)|0;if(o.s===undefined)o.s=.5+.5*rnd();o.ph=o.ph||0;o.rv=o.rv||0;o.h=(o.y+1.03)/2;P.push(o)}
+
+// jarum pinus (cabang menjuntai, rapat)
+for(let i=0;i<30;i++){
+  const u=i/29,y0=Y0(u),r0=R(u),nb=Math.round(8+14*(1-u)),off=rnd()*TAU;
+  for(let b=0;b<nb;b++){
+    const a=off+b/nb*TAU+(rnd()-.5)*.3,n=Math.round(26+90*r0),ca=Math.cos(a),sa=Math.sin(a);
+    for(let k=0;k<n;k++){
+      const t=(k+rnd())/n,r=r0*t,sp=.03+.05*t;
+      add({x:ca*r+(rnd()-.5)*sp,y:y0+.05*(1-t)-.38*r0*t*t+(rnd()-.5)*.04,z:sa*r+(rnd()-.5)*sp,t:0,s:.4+.6*rnd()});
+    }
+  }
+}
+for(let k=0;k<120;k++){const a=rnd()*TAU,r=.05*Math.sqrt(rnd());add({x:Math.cos(a)*r,y:-1.03+rnd()*.33,z:Math.sin(a)*r,t:2})}
+// lampu kelap-kelip
+for(let k=0;k<260;k++){const u=.05+.85*rnd(),a=rnd()*TAU,r=R(u)*(.5+.5*rnd());add({x:Math.cos(a)*r,y:Y0(u)-.3*r,z:Math.sin(a)*r,t:1,c:pick(LIGHTS),ph:rnd()*TAU,rv:T.orn+u*1.8+rnd()*.4})}
+// bola ornamen
+for(let k=0;k<115;k++){const u=.06+.82*rnd(),a=rnd()*TAU,r=R(u)*(.8+.22*rnd()),c=pick(BALLS),rv=T.orn+u*1.8+rnd()*.4,bx=Math.cos(a)*r,by=Y0(u)-.3*r,bz=Math.sin(a)*r;
+  for(let j=0;j<13;j++)add({x:bx+(rnd()-.5)*.075,y:by+(rnd()-.5)*.075,z:bz+(rnd()-.5)*.075,t:5,c:c,rv:rv})}
+// tinsel emas
+for(let k=0;k<2600;k++){const u=k/2600,uu=.05+.85*u,a=u*TAU*4.2,r0=R(uu),r=r0*.92;
+  add({x:Math.cos(a)*r+(rnd()-.5)*.025,y:Y0(uu)-.3*r0+.03*Math.sin(a*3)+(rnd()-.5)*.025,z:Math.sin(a)*r+(rnd()-.5)*.025,t:3,k:(rnd()*3)|0,ph:rnd()*TAU,rv:T.gar+u*1.9})}
+// bintang + sinar
+const SO=.2,SI=.085,SY=1.08;
+for(let n=0;n<600;){const x=(rnd()-.5)*2*SO,y=(rnd()-.5)*2*SO,r=Math.hypot(x,y);
+  const m=((Math.atan2(y,x)-Math.PI/2)%(TAU/5)+TAU/5)%(TAU/5),d=Math.abs(m-TAU/10)/(TAU/10);
+  if(r<=SI+(SO-SI)*d){add({x:x,y:SY+y,z:(rnd()-.5)*.05,t:4,c:r<SO*.5?'#f0dca0':'#e0b550',rv:T.star});n++}}
+for(let k=0;k<12;k++){const a=k*TAU/12+.2;for(let j=1;j<=9;j++){const t=SO*1.1+j*.035;add({x:Math.cos(a)*t,y:SY+Math.sin(a)*t,z:0,t:6,s:1-j/11,ph:a,rv:T.star})}}
+// kado
+[[200,1.0,.46,.40,'#4a6fa5','#c9d6e8'],[28,.95,.52,.45,'#a8403f','#e0c387'],[332,1.02,.34,.30,'#b5475f','#e8dcc0'],[118,1.0,.34,.30,'#c9a04a','#a8403f'],[275,.98,.40,.36,'#3f8a63','#e8dcc0']].forEach((g,i)=>{
+  const a=g[0]*Math.PI/180,w=g[2],h=g[3],cx=Math.cos(a)*g[1],cz=Math.sin(a)*g[1],cy=-1.03+h/2,rv=T.gift+i*.35;
+  for(let n=0;n<2600;n++){
+    const f=(rnd()*5)|0,u=rnd()-.5,v=rnd()-.5;let x,y,z,rb,sh;
+    if(f===0){x=u*w;y=h/2;z=v*w;rb=Math.abs(u)<.1||Math.abs(v)<.1;sh=1}
+    else if(f<3){x=u*w;y=v*h;z=(f===1?.5:-.5)*w;rb=Math.abs(u)<.1;sh=.78}
+    else{x=(f===3?.5:-.5)*w;y=v*h;z=u*w;rb=Math.abs(u)<.1;sh=.58}
+    add({x:cx+x,y:cy+y,z:cz+z,t:7,c:rb?g[5]:g[4],r:rb,rv:rv+(cy+y+1.03)*.9,s:sh});
+  }
+  for(let n=0;n<60;n++)add({x:cx+(rnd()-.5)*.17,y:cy+h/2+.02+rnd()*.07,z:cz+(rnd()-.5)*.07,t:7,c:g[5],r:1,rv:rv+.3,s:1});
+});
+const SN=[];for(let i=0;i<720;i++)SN.push({x:rnd(),y:rnd(),z:rnd(),p:rnd()*TAU});
+
+// font pixel 5x9
+const FONT={};
+function gl(ch,top,rows){const a=[];for(let i=0;i<9;i++)a.push('.....');rows.forEach((r,i)=>a[top+i]=r);FONT[ch]=a}
+gl('M',0,['X...X','XX.XX','X.X.X','X...X','X...X','X...X','X...X']);
+gl('E',0,['XXXXX','X....','X....','XXXX.','X....','X....','XXXXX']);
+gl('R',0,['XXXX.','X...X','X...X','XXXX.','X.X..','X..X.','X...X']);
+gl('Y',0,['X...X','X...X','.X.X.','..X..','..X..','..X..','..X..']);
+gl('C',0,['.XXXX','X....','X....','X....','X....','X....','.XXXX']);
+gl('H',0,['X...X','X...X','X...X','XXXXX','X...X','X...X','X...X']);
+gl('I',0,['XXXXX','..X..','..X..','..X..','..X..','..X..','XXXXX']);
+gl('S',0,['.XXXX','X....','X....','.XXX.','....X','....X','XXXX.']);
+gl('T',0,['XXXXX','..X..','..X..','..X..','..X..','..X..','..X..']);
+gl('A',0,['.XXX.','X...X','X...X','XXXXX','X...X','X...X','X...X']);
+gl('B',0,['XXXX.','X...X','X...X','XXXX.','X...X','X...X','XXXX.']);
+gl('D',0,['XXXX.','X...X','X...X','X...X','X...X','X...X','XXXX.']);
+gl('y',2,['X...X','X...X','X...X','.XXXX','....X','....X','XXXX.']);
+gl('o',2,['.XXX.','X...X','X...X','X...X','.XXX.']);
+gl('n',2,['XXXX.','X...X','X...X','X...X','X...X']);
+gl('i',0,['..X..','.....','.XX..','..X..','..X..','..X..','.XXX.']);
+gl('r',2,['X.XXX','XX...','X....','X....','X....']);
+gl('w',2,['X...X','X...X','X.X.X','XX.XX','X...X']);
+gl('a',2,['.XXX.','....X','.XXXX','X...X','.XXXX']);
+gl('t',1,['.X...','XXXX.','.X...','.X...','.X..X','..XX.']);
+const ADV=6,SPC=4;
+function pwidth(s,p){let c=0;for(let i=0;i<s.length;i++)c+=s[i]===' '?SPC:ADV;return (c-1)*p}
+
+let W,H,dpr,cw,ch,cols,rows,S,cx,cy,gRow,zb,ci,bb,fa,p1,p2,ty1,ty2;
+function size(){
+  dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;
+  cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0);
+  S=Math.min((H*.92-60)/3,W*.35);
+  cw=ch=Math.max(3,Math.min(7,Math.round(S/34)));   // 1 "pixel" pohon
+  cols=Math.ceil(W/cw);rows=Math.ceil(H/ch);
+  // tulisan kecil di bawah tengah pohon
+  p1=Math.max(1.5,Math.round(1.2*S/87*dpr)/dpr);
+  p2=Math.max(1,Math.floor(p1*.42*dpr)/dpr);
+  const gT=Math.max(10,p1*3),g2=p1*2.2,h1=7*p1,h2=9*p2,C=1.34*S+1.62*S+gT+h1+g2+h2;
+  cx=W/2;cy=(H-C)/2+1.34*S;ty1=cy+1.62*S+gT;ty2=ty1+h1+g2;
+  gRow=Math.floor((cy+S*1.02)/ch);
+  const N=cols*rows;zb=new Float32Array(N);ci=new Int32Array(N);bb=new Float32Array(N);fa=new Float32Array(N);
+}
+size();addEventListener('resize',size);
+let th=.6,t0=null,drag=false,lx=0,last=0,started=false;
+cv.addEventListener('pointerdown',e=>{drag=true;lx=e.clientX;cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointermove',e=>{if(drag){const d=e.clientX-lx;th+=d*.012;lx=e.clientX}});
+const up=()=>{drag=false};
+cv.addEventListener('pointerup',up);cv.addEventListener('pointercancel',up);
+
+// layar awal + musik (file lagu.mp3 opsional, di folder yang sama)
+const au=document.getElementById('bgm'),st=document.getElementById('start'),mu=document.getElementById('mute'),snd=document.getElementById('snd');
+let hasAudio=true;au.addEventListener('error',()=>{hasAudio=false;snd.style.display='none'});
+setTimeout(()=>{if(au.error)snd.style.display='none'},400);
+st.addEventListener('click',()=>{
+  started=true;t0=null;st.style.display='none';
+  if(hasAudio&&!au.error){au.volume=.8;au.play().then(()=>{mu.style.display='block'}).catch(()=>{})}
+});
+mu.addEventListener('click',()=>{au.muted=!au.muted;mu.textContent=au.muted?'🔇':'🔊'});
+// lagu cuma main saat tab/halaman ini terbuka: pause saat pindah tab, tekan Home, atau layar mati; lanjut saat kembali
+let resumeAudio=false;
+function pauseBgm(){if(!au.paused){resumeAudio=true;au.pause()}}
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)pauseBgm();
+  else if(resumeAudio&&started){resumeAudio=false;au.play().catch(()=>{})}
+});
+addEventListener('pagehide',pauseBgm);
+addEventListener('pageshow',()=>{if(!document.hidden&&resumeAudio&&started){resumeAudio=false;au.play().catch(()=>{})}});
+addEventListener('blur',()=>{if(document.hidden)pauseBgm()});
+
+function cell(c,r,col,a){ctx.globalAlpha=a;ctx.fillStyle=col;ctx.fillRect(c*cw,r*ch,cw,ch)}
+function pix(s,n,top,p,t,o){
+  let x=W/2-pwidth(s,p)/2;const gap=Math.max(.2,p*.14);
+  for(let i=0;i<n;i++){
+    if(s[i]===' '){x+=SPC*p;continue}
+    const g=FONT[s[i]],hot=i===n-1&&n<s.length;
+    let br=1;const c=o.col(i,t);
+    if(o.blink)br=.45+.55*Math.pow(.5+.5*Math.sin(t*4.2+i*2.1),1.4);
+    ctx.globalAlpha=o.alpha*br;ctx.fillStyle=hot?CREAM:c;ctx.shadowColor=c;ctx.shadowBlur=o.glow*br;
+    ctx.beginPath();
+    for(let r=0;r<9;r++)for(let k=0;k<5;k++)if(g[r][k]==='X')ctx.rect(x+k*p,top+r*p,p-gap,p-gap);
+    ctx.fill();
+    x+=ADV*p;
+  }
+  ctx.shadowBlur=0;ctx.globalAlpha=1;
+}
+const TC=['#b8574f','#cfa55a','#5f9a6a','#6f8fb8'];
+const O1={blink:true,alpha:.8,glow:0,col:(i,t)=>TC[(i+Math.floor(t*.9))%4]};
+const O2={blink:false,alpha:.5,glow:0,col:()=>'#cfc3a5'};
+
+function frame(ts){
+  if(started&&t0===null)t0=reduce?ts-1e5:ts;
+  const tl=started?(ts-t0)/1000:-1,t=ts/1000,dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+  if(!drag)th+=dt*(reduce?.12:.5);
+  ctx.clearRect(0,0,W,H);
+  // tanah bersalju (titik pixel)
+  ctx.fillStyle='#dfeaff';
+  const gs=Math.max(1,cw*.55);
+  for(let r=gRow;r<rows;r++){
+    ctx.globalAlpha=Math.max(.1,.5-(r-gRow)*.04);
+    for(let c=0;c<cols;c++){const h=(((c*73856093)^(r*19349663))>>>0)%15;if(h<5)ctx.fillRect(c*cw,r*ch,gs,gs)}
+  }
+  ctx.globalAlpha=1;
+  zb.fill(-9);ci.fill(-1);
+  const g=ease(clamp((tl-T.g0)/(T.g1-T.g0)))*1.06,p=.18+.85*(1-ease(clamp((tl-.3)/(T.g1-.3))));
+  const cT=Math.cos(th),sT=Math.sin(th),cP=Math.cos(p),sP=Math.sin(p);
+  if(tl>T.star){
+    const a=ease(clamp((tl-T.star)/1.5))*(.8+.2*Math.sin(t*2.5)),z2=SY*sP,k=4/(4-z2),sy=cy-SY*cP*S*k,rad=.75*S*k;
+    const gr=ctx.createRadialGradient(cx,sy,0,cx,sy,rad);
+    gr.addColorStop(0,'rgba(224,181,80,'+(.3*a)+')');gr.addColorStop(.4,'rgba(224,170,70,'+(.09*a)+')');gr.addColorStop(1,'rgba(224,170,70,0)');
+    ctx.globalCompositeOperation='lighter';ctx.fillStyle=gr;ctx.fillRect(cx-rad,sy-rad,rad*2,rad*2);ctx.globalCompositeOperation='source-over';
+  }
+  if(started)for(let i=0;i<P.length;i++){
+    const q=P[i];let fl=0;
+    if(q.t===0||q.t===2){const d=g-q.h;if(d<0)continue;if(d<.06)fl=1-d/.06}
+    else{if(tl<q.rv)continue;fl=Math.max(0,1-(tl-q.rv)/.4)}
+    const face=q.t===4||q.t===6;
+    const x1=face?q.x:q.x*cT+q.z*sT,z1=face?q.z:-q.x*sT+q.z*cT,y2=q.y*cP-z1*sP,z2=q.y*sP+z1*cP;
+    const k=4/(4-z2),c=((cx+x1*S*k)/cw)|0,r=((cy-y2*S*k)/ch)|0;
+    if(c<0||r<0||c>=cols||r>=rows)continue;
+    const id=r*cols+c,zz=z2+((q.t===1||q.t>=3)?.1:0);
+    if(zz>zb[id]){zb[id]=zz;ci[id]=i;bb[id]=q.s*(.3+.7*clamp((z2+1)/2));fa[id]=fl}
+  }
+  for(let id=0;id<ci.length;id++){
+    const i=ci[id];if(i<0)continue;
+    const q=P[i],b=bb[id],f=fa[id],c=id%cols,r=(id/cols)|0;
+    if(q.t===0){
+      const ix=Math.max(0,Math.min(4,Math.round(b*4+(q.k-1.5)*.4)));
+      cell(c,r,f>.35?CREAM:GR[ix],1);
+    }else if(q.t===1){
+      const on=.5+.5*Math.sin(t*2.6+q.ph);
+      if(on<.3){cell(c,r,q.c,.35)}else{
+        if(on>.8){ctx.fillStyle=q.c;ctx.globalAlpha=.1;ctx.fillRect((c-1)*cw,(r-1)*ch,cw*3,ch*3)}
+        cell(c,r,f>0?CREAM:q.c,.6+.35*on)}
+    }else if(q.t===2){
+      cell(c,r,'hsl(25,50%,'+(18+b*26|0)+'%)',1);
+    }else if(q.t===3){
+      cell(c,r,f>.3?CREAM:(q.k===0?'#e0c98a':'#c9a04a'),(.65+.3*b)*(.8+.2*Math.sin(t*3+q.ph)));
+    }else if(q.t===4){
+      cell(c,r,f>.2?CREAM:q.c,.93+.07*Math.sin(t*3));
+    }else if(q.t===5){
+      cell(c,r,f>.3?CREAM:q.c,1);
+      if(q.k===0)cell(c,r,CREAM,.3);
+    }else if(q.t===6){
+      cell(c,r,'#e8d59a',Math.min(1,.6*q.s*(.6+.4*Math.sin(t*3+q.ph*3))+f*.4));
+    }else{
+      cell(c,r,f>.3?CREAM:q.c,1);
+      const dk=(1-q.s)*(.45+.3*(1-b));if(dk>.02&&!f)cell(c,r,'#0a0f24',dk);
+    }
+  }
+  // salju merata di seluruh layar
+  ctx.fillStyle='#e1eeff';
+  for(const s of SN){
+    s.y+=dt*(.035+.07*s.z)*(reduce?.4:1);s.x+=Math.sin(t*.6+s.p)*dt*.012;
+    const r=(s.y*rows)|0;
+    if(r>=rows){s.y=-.02;s.x=rnd();s.z=rnd();continue}
+    const c=Math.floor(((s.x%1+1)%1)*cols);
+    if(r<0||(s.z<.7&&ci[r*cols+c]>=0))continue;
+    const z=s.z,sz=Math.max(1,cw*(z<.3?.35:z<.85?.6:.85)),o=(cw-sz)/2;
+    ctx.globalAlpha=.3+.6*z;ctx.fillRect(c*cw+o,r*ch+o,sz,sz);
+  }
+  ctx.globalAlpha=1;
+  const m1='MERRY CHRISTMAS',m2='By Doni Erwanto';
+  const n1=Math.min(m1.length,Math.max(0,Math.floor((tl-T.text)/.09)+1));
+  const t2=T.text+m1.length*.09+.35,n2=Math.min(m2.length,Math.max(0,Math.floor((tl-t2)/.07)+1));
+  if(n1>0)pix(m1,n1,ty1,p1,t,{blink:n1===m1.length,alpha:O1.alpha,glow:p1*.9,col:O1.col});
+  if(n2>0)pix(m2,n2,ty2,p2,t,O2);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
